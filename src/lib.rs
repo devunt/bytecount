@@ -183,3 +183,36 @@ pub fn num_chars(utf8_chars: &[u8]) -> usize {
 
     naive_num_chars(utf8_chars)
 }
+
+/// Find the byte offset of the `n`-th UTF-8 encoded Unicode codepoint in a slice of bytes, fast
+///
+/// Returns the byte offset where the `n`-th character (0-indexed) starts.
+/// If `n` is greater than or equal to the number of characters, returns the length of the slice.
+///
+/// This function is safe to use on any byte array, valid UTF-8 or not,
+/// but the output is only meaningful for well-formed UTF-8.
+///
+/// # Example
+///
+/// ```
+/// let swordfish = "メカジキ";
+/// assert_eq!(bytecount::byte_offset_of_char(swordfish.as_bytes(), 0), 0);
+/// assert_eq!(bytecount::byte_offset_of_char(swordfish.as_bytes(), 2), 6);
+/// assert_eq!(bytecount::byte_offset_of_char(swordfish.as_bytes(), 4), 12);
+/// ```
+pub fn byte_offset_of_char(utf8_chars: &[u8], n: usize) -> usize {
+    if n == 0 {
+        return 0;
+    }
+
+    if utf8_chars.len() >= 32 {
+        #[cfg(feature = "generic-simd")]
+        return simd::generic::chunk_byte_offset_of_char(utf8_chars, n);
+    }
+
+    if utf8_chars.len() >= mem::size_of::<usize>() {
+        return integer_simd::chunk_byte_offset_of_char(utf8_chars, n);
+    }
+
+    naive_byte_offset_of_char(utf8_chars, n)
+}

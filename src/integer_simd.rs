@@ -119,3 +119,34 @@ pub fn chunk_num_chars(utf8_chars: &[u8]) -> usize {
         count
     }
 }
+
+pub fn chunk_byte_offset_of_char(utf8_chars: &[u8], n: usize) -> usize {
+    let chunksize = mem::size_of::<usize>();
+    assert!(utf8_chars.len() >= chunksize);
+
+    unsafe {
+        let mut offset = 0;
+        let mut count = 0;
+
+        while utf8_chars.len() >= offset + chunksize {
+            let chunk_chars =
+                sum_usize(is_leading_utf8_byte(usize_load_unchecked(utf8_chars, offset)));
+            if count + chunk_chars > n {
+                break;
+            }
+            count += chunk_chars;
+            offset += chunksize;
+        }
+
+        for i in offset..utf8_chars.len() {
+            if (utf8_chars[i] >> 6) != 0b10 {
+                if count == n {
+                    return i;
+                }
+                count += 1;
+            }
+        }
+
+        utf8_chars.len()
+    }
+}

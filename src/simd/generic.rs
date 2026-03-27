@@ -138,3 +138,46 @@ pub fn chunk_num_chars(utf8_chars: &[u8]) -> usize {
         count
     }
 }
+
+pub fn chunk_byte_offset_of_char(utf8_chars: &[u8], n: usize) -> usize {
+    assert!(utf8_chars.len() >= 32);
+
+    unsafe {
+        let mut offset = 0;
+        let mut count = 0;
+
+        // Process 64-byte chunks
+        while utf8_chars.len() >= offset + 64 {
+            let chunk_chars =
+                sum_x64(&is_leading_utf8_byte_x64(u8x64_from_offset(utf8_chars, offset)));
+            if count + chunk_chars > n {
+                break;
+            }
+            count += chunk_chars;
+            offset += 64;
+        }
+
+        // Process 32-byte chunks
+        while utf8_chars.len() >= offset + 32 {
+            let chunk_chars =
+                sum_x32(&is_leading_utf8_byte_x32(u8x32_from_offset(utf8_chars, offset)));
+            if count + chunk_chars > n {
+                break;
+            }
+            count += chunk_chars;
+            offset += 32;
+        }
+
+        // Byte-by-byte for remaining
+        for i in offset..utf8_chars.len() {
+            if (utf8_chars[i] >> 6) != 0b10 {
+                if count == n {
+                    return i;
+                }
+                count += 1;
+            }
+        }
+
+        utf8_chars.len()
+    }
+}

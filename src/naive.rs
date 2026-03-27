@@ -45,3 +45,26 @@ pub fn naive_num_chars(utf8_chars: &[u8]) -> usize {
         .filter(|&&byte| (byte >> 6) != 0b10)
         .count()
 }
+
+/// Find the byte offset of the `n`-th UTF-8 encoded Unicode codepoint
+/// in a slice of bytes, simple
+///
+/// # Example
+///
+/// ```
+/// let swordfish = "メカジキ";
+/// let offset = bytecount::naive_byte_offset_of_char(swordfish.as_bytes(), 2);
+/// assert_eq!(offset, 6);
+/// ```
+pub fn naive_byte_offset_of_char(utf8_chars: &[u8], n: usize) -> usize {
+    let mut count = 0;
+    for (i, &byte) in utf8_chars.iter().enumerate() {
+        if (byte >> 6) != 0b10 {
+            if count == n {
+                return i;
+            }
+            count += 1;
+        }
+    }
+    utf8_chars.len()
+}
